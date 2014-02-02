@@ -8,15 +8,17 @@ import (
 )
 
 var update bool
+var gameOver bool
 
 type State int8
 
 const (
-	Safe State = 0
-	Bomb State = 10
-	Mask State = 100
-	Flag State = 101
-	Open State = 102
+	Safe  State = 0
+	Bomb  State = 10
+	Bomb2 State = 11
+	Mask  State = 100
+	Flag  State = 101
+	Open  State = 102
 )
 
 type Board struct {
@@ -117,8 +119,22 @@ func (b *Board) open(x, y int) {
 		b.MaskBox[y][x] = Open
 		if b.Box[y][x] == Safe {
 			b.expand(x, y)
+		} else if b.Box[y][x] == Bomb {
+			b.Box[y][x] = Bomb2
+			b.openBomb()
+			gameOver = true
 		}
 		update = true
+	}
+}
+
+func (b *Board) openBomb() {
+	for i := range b.Box {
+		for j := range b.Box[i] {
+			if b.Box[i][j] == Bomb && b.MaskBox[i][j] == Mask {
+				b.MaskBox[i][j] = Open
+			}
+		}
 	}
 }
 
@@ -159,6 +175,9 @@ func draw(b *Board) {
 					if v == Bomb {
 						termbox.SetCell(j, i, '@',
 							termbox.ColorWhite, termbox.ColorDefault)
+					} else if v == Bomb2 {
+						termbox.SetCell(j, i, '@',
+							termbox.ColorWhite, termbox.ColorRed)
 					} else if v == Safe {
 						termbox.SetCell(j, i, ' ',
 							termbox.ColorWhite, termbox.ColorDefault)
@@ -171,7 +190,11 @@ func draw(b *Board) {
 			}
 		}
 	}
-	termbox.SetCursor(b.CursorX, b.CursorY)
+	if !gameOver {
+		termbox.SetCursor(b.CursorX, b.CursorY)
+	} else {
+		termbox.HideCursor()
+	}
 	termbox.Flush()
 	update = false
 }
@@ -186,6 +209,11 @@ func main() {
 
 	board := NewBoard(9, 9)
 	update = true
+	gameOver = false
+	setString(12, 0, "Move: j/k/h/l", termbox.ColorWhite, termbox.ColorDefault)
+	setString(12, 1, "Open: space", termbox.ColorWhite, termbox.ColorDefault)
+	setString(12, 2, "Flag: f", termbox.ColorWhite, termbox.ColorDefault)
+	setString(12, 3, "Quit: Esc", termbox.ColorWhite, termbox.ColorDefault)
 
 	tick := time.Tick(100 * time.Millisecond)
 	stop := make(chan int)
@@ -219,10 +247,10 @@ func main() {
 						b.CursorX--
 					}
 				}
-				if ev.Ch == 'f' {
+				if ev.Ch == 'f' && !gameOver {
 					b.toggleFlag(b.CursorX, b.CursorY)
 				}
-				if ev.Key == termbox.KeySpace {
+				if ev.Key == termbox.KeySpace && !gameOver {
 					b.open(b.CursorX, b.CursorY)
 				}
 			case termbox.EventError:
