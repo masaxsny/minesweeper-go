@@ -87,6 +87,27 @@ func (b *Board) toggleFlag(x, y int) {
 	}
 }
 
+func (b *Board) expand(x, y int) {
+	for i := y - 1; i <= y+1; i++ {
+		if i < 0 || i >= b.Height {
+			continue
+		}
+		for j := x - 1; j <= x+1; j++ {
+			if j < 0 || j >= b.Width {
+				continue
+			}
+			if x != j || y != i {
+				if b.MaskBox[i][j] == Mask {
+					b.MaskBox[i][j] = Open
+					if b.Box[i][j] == Safe {
+						b.expand(j, i)
+					}
+				}
+			}
+		}
+	}
+}
+
 func (b *Board) open(x, y int) {
 	if !b.Started {
 		b.setBomb(x, y)
@@ -94,6 +115,9 @@ func (b *Board) open(x, y int) {
 	}
 	if b.MaskBox[y][x] == Mask {
 		b.MaskBox[y][x] = Open
+		if b.Box[y][x] == Safe {
+			b.expand(x, y)
+		}
 		update = true
 	}
 }
