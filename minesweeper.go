@@ -31,30 +31,26 @@ type Board struct {
 func (b *Board) setBomb(sx, sy int) {
 	now := time.Now().UnixNano()
 	rnd := rand.New(rand.NewSource(now))
-	ary := make([][]State, b.Height)
-	for i := range ary {
-		ary[i] = make([]State, b.Width)
-	}
 	cnt := 0
 	for {
 		x := rnd.Intn(b.Width - 1)
 		y := rnd.Intn(b.Height - 1)
-		if ary[y][x] == Safe {
-			ary[y][x] = Bomb
+		if b.Box[y][x] == Safe {
+			b.Box[y][x] = Bomb
 			cnt++
 		}
 		if cnt >= 10 {
 			break
 		}
 	}
-	for i := range ary {
-		for j := range ary[i] {
-			if ary[i][j] == Bomb {
+	for i := range b.Box {
+		for j := range b.Box[i] {
+			if b.Box[i][j] == Bomb {
 				for m := i - 1; m <= i+1; m++ {
 					for n := j - 1; n <= j+1; n++ {
 						if m >= 0 && n >= 0 && m < b.Height && n < b.Width {
-							if ary[m][n] != Bomb {
-								ary[m][n]++
+							if b.Box[m][n] != Bomb {
+								b.Box[m][n]++
 							}
 						}
 					}
@@ -62,10 +58,15 @@ func (b *Board) setBomb(sx, sy int) {
 			}
 		}
 	}
-	b.Box = ary
 }
 
-func (b *Board) setMaskBox() {
+func (b *Board) initBox() {
+	ary := make([][]State, b.Height)
+	for i := range ary {
+		ary[i] = make([]State, b.Width)
+	}
+	b.Box = ary
+
 	maskAry := make([][]State, b.Height)
 	for i := range maskAry {
 		maskAry[i] = make([]State, b.Width)
@@ -94,6 +95,7 @@ func NewBoard(w, h int) *Board {
 	b := new(Board)
 	b.Width = w
 	b.Height = h
+	b.initBox()
 	return b
 }
 
@@ -151,7 +153,6 @@ func main() {
 	termbox.SetInputMode(termbox.InputEsc)
 
 	board := NewBoard(9, 9)
-	board.setMaskBox()
 	board.setBomb(0, 0)
 	update = true
 
