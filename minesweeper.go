@@ -26,6 +26,7 @@ type Board struct {
 	MaskBox [][]State
 	CursorX int
 	CursorY int
+	Started bool
 }
 
 func (b *Board) setBomb(sx, sy int) {
@@ -35,9 +36,11 @@ func (b *Board) setBomb(sx, sy int) {
 	for {
 		x := rnd.Intn(b.Width - 1)
 		y := rnd.Intn(b.Height - 1)
-		if b.Box[y][x] == Safe {
-			b.Box[y][x] = Bomb
-			cnt++
+		if x < sx-1 || x > sx+1 || y < sy-1 || y > sy+1 {
+			if b.Box[y][x] == Safe {
+				b.Box[y][x] = Bomb
+				cnt++
+			}
 		}
 		if cnt >= 10 {
 			break
@@ -85,6 +88,10 @@ func (b *Board) toggleFlag(x, y int) {
 }
 
 func (b *Board) open(x, y int) {
+	if !b.Started {
+		b.setBomb(x, y)
+		b.Started = true
+	}
 	if b.MaskBox[y][x] == Mask {
 		b.MaskBox[y][x] = Open
 		update = true
@@ -95,6 +102,7 @@ func NewBoard(w, h int) *Board {
 	b := new(Board)
 	b.Width = w
 	b.Height = h
+	b.Started = false
 	b.initBox()
 	return b
 }
@@ -153,7 +161,6 @@ func main() {
 	termbox.SetInputMode(termbox.InputEsc)
 
 	board := NewBoard(9, 9)
-	board.setBomb(0, 0)
 	update = true
 
 	tick := time.Tick(100 * time.Millisecond)
