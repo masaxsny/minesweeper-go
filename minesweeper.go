@@ -9,6 +9,7 @@ import (
 
 var update bool
 var gameOver bool
+var gameClear bool
 
 type State int8
 
@@ -29,6 +30,7 @@ type Board struct {
 	CursorX int
 	CursorY int
 	Started bool
+	Opend   int
 }
 
 func (b *Board) setBomb(sx, sy int) {
@@ -101,6 +103,7 @@ func (b *Board) expand(x, y int) {
 			if x != j || y != i {
 				if b.MaskBox[i][j] == Mask {
 					b.MaskBox[i][j] = Open
+					b.checkClear()
 					if b.Box[i][j] == Safe {
 						b.expand(j, i)
 					}
@@ -117,6 +120,7 @@ func (b *Board) open(x, y int) {
 	}
 	if b.MaskBox[y][x] == Mask {
 		b.MaskBox[y][x] = Open
+		b.checkClear()
 		if b.Box[y][x] == Safe {
 			b.expand(x, y)
 		} else if b.Box[y][x] == Bomb {
@@ -125,6 +129,13 @@ func (b *Board) open(x, y int) {
 			gameOver = true
 		}
 		update = true
+	}
+}
+
+func (b *Board) checkClear() {
+	b.Opend++
+	if b.Width*b.Height-b.Opend == 10 {
+		gameClear = true
 	}
 }
 
@@ -143,6 +154,7 @@ func NewBoard(w, h int) *Board {
 	b.Width = w
 	b.Height = h
 	b.Started = false
+	b.Opend = 0
 	b.initBox()
 	return b
 }
@@ -194,6 +206,11 @@ func draw(b *Board) {
 		termbox.SetCursor(b.CursorX, b.CursorY)
 	} else {
 		termbox.HideCursor()
+		setString(12, 5, "Game Over", termbox.ColorRed, termbox.ColorDefault)
+	}
+	if gameClear {
+		termbox.HideCursor()
+		setString(12, 5, "Game Clear!", termbox.ColorGreen, termbox.ColorDefault)
 	}
 	termbox.Flush()
 	update = false
@@ -210,6 +227,7 @@ func main() {
 	board := NewBoard(9, 9)
 	update = true
 	gameOver = false
+	gameClear = false
 	setString(12, 0, "Move: j/k/h/l", termbox.ColorWhite, termbox.ColorDefault)
 	setString(12, 1, "Open: space", termbox.ColorWhite, termbox.ColorDefault)
 	setString(12, 2, "Flag: f", termbox.ColorWhite, termbox.ColorDefault)
@@ -247,10 +265,10 @@ func main() {
 						b.CursorX--
 					}
 				}
-				if ev.Ch == 'f' && !gameOver {
+				if ev.Ch == 'f' && !gameOver && !gameClear {
 					b.toggleFlag(b.CursorX, b.CursorY)
 				}
-				if ev.Key == termbox.KeySpace && !gameOver {
+				if ev.Key == termbox.KeySpace && !gameOver && !gameClear {
 					b.open(b.CursorX, b.CursorY)
 				}
 			case termbox.EventError:
